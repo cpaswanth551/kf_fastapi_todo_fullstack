@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import JWTError, jwt
+from fastapi.templating import Jinja2Templates
+
 
 from ..database import get_db
 from ..models import Users
@@ -29,7 +31,6 @@ class CreateUserRequest(BaseModel):
     first_name: str
     last_name: str
     password: str
-    is_active: bool
     role: str
     phone_number: str
 
@@ -40,6 +41,24 @@ class Token(BaseModel):
 
 
 db_dependency = Annotated[Session, Depends(get_db)]
+
+templates = Jinja2Templates(directory="backend/templates")
+
+
+######## pages ######
+
+
+@router.get("/login-page")
+def render_login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@router.get("/register-page")
+def render_register_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+#### Endpoints ######
 
 
 def autenticate_user(username: str, password: str, db):
@@ -87,6 +106,7 @@ async def get_all_users(db: db_dependency):
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_user(db: db_dependency, create_user_request: CreateUserRequest):
+    print(create_user_request)
     create_user_model = Users(
         username=create_user_request.username,
         email=create_user_request.email,
